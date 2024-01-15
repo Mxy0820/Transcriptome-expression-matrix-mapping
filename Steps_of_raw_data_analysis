@@ -1,0 +1,38 @@
+#step1 fastp-quality-control
+fastp -i YourPath/Rawdata_R1.fastq.gz \
+	-o R1.clean.fastq.gz \
+	-I YourPath/Rawdata_R2.fastq.gz \
+	-O R2.clean.fastq.gz \
+	-q 20 \
+	-w 10 \
+	-c
+
+#step2 rsem-prepare-reference
+rsem-prepare-reference 
+	--gtf  ${REF_DIR}/$MY_GTF\
+	--star \
+	-p 64 
+
+#step3 rsem-calculate-expression
+rsem-calculate-expression 
+	--no-bam-output\
+	--gzipped-read-file\
+	--paired-end \
+        --star
+	${FQ_DIR}/${i}_1.fq.gz \
+	${FQ_DIR}/${i}_2.fq.gz \
+	-p 64 \
+
+#step4 combine-expression-matrix
+perl YourPath/abundance_estimates_to_matrix.pl \
+	--est_method RSEM \
+	--gene_trans_map none \
+	--quant_files 01.genes_quanti_files.txt \
+	--out_prefix rsem_genes
+
+#step5 differential-expreesion-analysis
+perl YourPath/run_DE_analysis.pl \
+	--matrix ${matrix} \
+	--method DESeq2 \
+	--samples_file sample.list \
+	--contrasts contrasts.txt
